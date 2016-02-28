@@ -12,7 +12,7 @@ except ImportError:
     tkinter_error(msg)
 
 import pyslip
-import pyslip.osm_tiles as tiles
+import pyslip.stmtr_tiles as tiles
 
 ######
 # Various demo constants
@@ -23,17 +23,6 @@ InitViewLevel = 5
 
 InitViewPosition = (-91.179, 30.413)
 
-# list of modules containing tile sources
-# list of (<long_name>, <module_name>)
-# the <long_name>s go into the Tileselect menu
-TileSources = [
-               ('OpenStreetMap tiles', 'pyslip.osm_tiles'),
-               ('Stamen Toner tiles', 'pyslip.stmt_tiles'),
-               ('Stamen Transport tiles', 'pyslip.stmtr_tiles'),
-              ]
-DefaultTileset = 'OpenStreetMap tiles'
-
-
 ######
 # Various GUI layout constants
 ######
@@ -41,6 +30,7 @@ DefaultTileset = 'OpenStreetMap tiles'
 ###############################################################################
 # The main application frame
 ###############################################################################
+
 
 class AppFrame(wx.Frame):
     def __init__(self):
@@ -51,34 +41,6 @@ class AppFrame(wx.Frame):
         self.panel.SetBackgroundColour(wx.WHITE)
         self.panel.ClearBackground()
 
-        # create tile set menu items
-        menubar = wx.MenuBar()
-        tile_menu = wx.Menu()
-
-        # initialise tileset handling
-        self.tile_source = None
-        # a dict of "gui_id: (name, module_name, object)" tuples
-        self.id2tiledata = {}
-        # a dict of "name: gui_id"
-        self.name2guiid = {}
-
-        self.default_tileset_name = None
-        for (name, module_name) in TileSources:
-            new_id = wx.NewId()
-            tile_menu.Append(new_id, name, name, wx.ITEM_RADIO)
-            self.Bind(wx.EVT_MENU, self.onTilesetSelect)
-            self.id2tiledata[new_id] = (name, module_name, None)
-            self.name2guiid[name] = new_id
-            if name == DefaultTileset:
-                self.default_tileset_name = name
-
-        if self.default_tileset_name is None:
-            raise Exception('Bad DefaultTileset (%s) or TileSources (%s)'
-                            % (DefaultTileset, str(TileSources)))
-
-        menubar.Append(tile_menu, "&Tileset")
-        self.SetMenuBar(menubar)
-
         self.tile_source = tiles.Tiles()
 
         # build the GUI
@@ -86,42 +48,6 @@ class AppFrame(wx.Frame):
 
         # do initialisation stuff - all the application stuff
         self.init()
-
-        # finally, set up application window position
-        self.Centre()
-
-        # create select event dispatch directory
-        self.demo_select_dispatch = {}
-
-        # select the required tileset
-        item_id = self.name2guiid[self.default_tileset_name]
-        tile_menu.Check(item_id, True)
-
-    def onTilesetSelect(self, event):
-        """User selected a tileset from the menu.
-
-        event  the menu select event
-        """
-
-        menu_id = event.GetId()
-        try:
-            (name, module_name, new_tile_obj) = self.id2tiledata[menu_id]
-        except KeyError:
-            # badly formed self.id2tiledata element
-            raise Exception('self.id2tiledata is badly formed:\n%s'
-                            % str(self.id2tiledata))
-
-        if new_tile_obj is None:
-            # haven't seen this tileset before, import and instantiate
-            module_name = self.id2tiledata[menu_id][1]
-            exec 'import %s as tiles' % module_name
-            new_tile_obj = tiles.Tiles()
-
-            # update the self.id2tiledata element
-            self.id2tiledata[menu_id] = (name, module_name, new_tile_obj)
-
-        self.pyslip.ChangeTileset(new_tile_obj)
-
 
 #####
 # Build the GUI
