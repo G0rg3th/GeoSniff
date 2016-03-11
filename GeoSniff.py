@@ -36,23 +36,61 @@ InitViewPosition = (-91.179, 30.413)
 # The main application frame
 ###############################################################################
 
+class App(wx.App):
+    """wxPython app class that runs the GUI."""
 
-class AppFrame(wx.Frame):
-    def __init__(self):
-        wx.Frame.__init__(self, None, title='GeoSniff')
-        self.Maximize()
-        self.SetMinSize((300, 300))
-        self.panel = wx.Panel(self, wx.ID_ANY)
-        self.panel.SetBackgroundColour(wx.WHITE)
-        self.panel.ClearBackground()
+    def OnInit(self):
+        self.frame = MainWindow(parent=None, title='GeoSniff')
+        self.frame.Maximize()
+        self.frame.Show()
+        self.SetTopWindow(self.frame)
+        return True
+
+    def add_point_to_map(self, longitude, latitude):
+        # For deletion:
+        # self.point_layer = self.pyslip.AddPointLayer(point_data, colour=point_data_colour, radius=5)
+        # self.pyslip.DeleteLayer(self.point_layer)
+        # self.point_layer = None
+
+        point_data = [(longitude, latitude)]
+        point_data_colour = '#ff000080'  # semi-transparent
+        self.frame.pyslip.AddPointLayer(point_data, colour=point_data_colour, radius=5)
+
+
+class MainWindow(wx.Frame):
+    """Window frame to contain the panels for functionality."""
+
+    def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, title=title)
+
+        self.actionbar_panel = wx.Panel(self)
+        temp_label = wx.StaticText(self.actionbar_panel, -1, "Buttons will go here")
+
+        self.split_reports_map = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.actionbar_panel, 0, wx.ALL, 5)
+        sizer.Add(self.split_reports_map, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(sizer)
+
+        self.reports_panel = wx.Panel(self.split_reports_map)
+        self.reports_panel.SetBackgroundColour(wx.WHITE)
+        self.split_reports_map.Initialize(self.reports_panel)
+
+        self.map_panel = wx.Panel(self.split_reports_map)
+        self.map_panel.ClearBackground()
 
         self.tile_source = tiles.Tiles()
 
         # build the GUI
-        self.make_gui(self.panel)
+        self.make_gui(self.map_panel)
 
         # do initialisation stuff - all the application stuff
         self.init()
+
+        self.split_reports_map.SplitVertically(self.reports_panel, self.map_panel)
+        self.split_reports_map.SetMinimumPaneSize(300)
 
     #####
     # Build the GUI
@@ -94,18 +132,6 @@ class AppFrame(wx.Frame):
     ######
 
     def init(self):
-        global PointData, PointDataColour
-
-        # create PointData
-        # PointData = [(-91.180337, 30.414316)]
-        # PointDataColour = '#ff000080'  # semi-transparent
-
-        # define layer ID variables & sub-checkbox state variables
-        # For deletion:
-        # self.pyslip.DeleteLayer(self.point_layer)
-        # self.point_layer = None
-        # self.point_layer = self.pyslip.AddPointLayer(PointData, colour=PointDataColour, radius=5)
-
         # force pyslip initialisation
         self.pyslip.OnSize()
 
@@ -124,11 +150,6 @@ class AppFrame(wx.Frame):
 
         self.pyslip.GotoLevelAndPosition(level, position)
 
-    def addPointToMap(self, longitude, latitude):
-        PointData = [(longitude, latitude)]
-        PointDataColour = '#ff000080'  # semi-transparent
-        self.pyslip.AddPointLayer(PointData, colour=PointDataColour, radius=5)
-
 
 ###############################################################################
 
@@ -139,7 +160,7 @@ class Database:
         self.database = IP2Location.IP2Location("IP2LOCATION-LITE-DB11.BIN")
 
     # Return a list that has Latitude = 0, Longitude = 1, Country = 2, city = 3
-    def getLocation(self, ip):
+    def get_location(self, ip):
         sender = self.database.get_all(ip)
         ret = [sender.latitude, sender.longitude, sender.country_long, sender.city]
         return ret
@@ -147,14 +168,11 @@ class Database:
 
 if __name__ == '__main__':
     # start wxPython app
-    app = wx.App()
-    app_frame = AppFrame()
-    app_frame.Show()
+    app = App()
 
     data = Database()
 
-    loc = data.getLocation("167.96.56.212")
-    app_frame.addPointToMap(loc[1], loc[0])
+    loc = data.get_location("167.96.56.212")
+    app.add_point_to_map(loc[1], loc[0])
 
     app.MainLoop()
-
