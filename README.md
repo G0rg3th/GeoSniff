@@ -18,3 +18,6 @@ RUN:
 	
 	import Listener
 	Listener.start()
+
+Installing matplotlib module
+http://matplotlib.org/users/installing.html

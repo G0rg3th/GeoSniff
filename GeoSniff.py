@@ -18,6 +18,9 @@ import IP2Location
 import pyslip
 import pyslip.stmtr_tiles as tiles
 
+import Graph
+
+
 ######
 # Various demo constants - can be removed later
 ######
@@ -57,6 +60,9 @@ class App(wx.App):
         self.frame.pyslip.AddPointLayer(point_data, colour=point_data_colour, radius=5)
 
 
+
+
+
 class MainWindow(wx.Frame):
     """Window frame to contain the panels for functionality."""
 
@@ -66,19 +72,29 @@ class MainWindow(wx.Frame):
         self.actionbar_panel = wx.Panel(self)
         temp_label = wx.StaticText(self.actionbar_panel, -1, "Buttons will go here")
 
-        self.split_reports_map = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
+        self.split_graph_map = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.actionbar_panel, 0, wx.ALL, 5)
-        sizer.Add(self.split_reports_map, 1, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(self.split_graph_map, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(sizer)
 
-        self.reports_panel = wx.Panel(self.split_reports_map)
-        self.reports_panel.SetBackgroundColour(wx.WHITE)
-        self.split_reports_map.Initialize(self.reports_panel)
+        # MAKE GRAPHS PANEL
+        self.graphs_panel = Graph.GraphPanelHolder(self.split_graph_map)
 
-        self.map_panel = wx.Panel(self.split_reports_map)
+        # FOR GRAPH TESTING PURPOSES
+        data = Database()
+        loc = data.get_location("167.96.56.212")
+        self.graphs_panel.update_graphs(loc[2], loc[3], "167.96.52.212")
+        loc= data.get_location("8.8.8.8")
+        self.graphs_panel.update_graphs(loc[2], loc[3], "167.96.52.222")
+        loc= data.get_location("210.129.120.46")
+        self.graphs_panel.update_graphs(loc[2], loc[3], "210.129.120.46")
+        # END GRAPH STUFF
+
+        self.split_graph_map.Initialize(self.graphs_panel)
+        self.map_panel = wx.Panel(self.split_graph_map)
         self.map_panel.ClearBackground()
 
         self.tile_source = tiles.Tiles()
@@ -89,8 +105,9 @@ class MainWindow(wx.Frame):
         # do initialisation stuff - all the application stuff
         self.init()
 
-        self.split_reports_map.SplitVertically(self.reports_panel, self.map_panel)
-        self.split_reports_map.SetMinimumPaneSize(300)
+        self.split_graph_map.SplitVertically(self.graphs_panel, self.map_panel)
+        self.split_graph_map.SetMinimumPaneSize(300)
+
 
     #####
     # Build the GUI
@@ -162,7 +179,7 @@ class Database:
     # Return a list that has Latitude = 0, Longitude = 1, Country = 2, city = 3
     def get_location(self, ip):
         sender = self.database.get_all(ip)
-        ret = [sender.latitude, sender.longitude, sender.country_long, sender.city]
+        ret = [sender.latitude, sender.longitude, sender.country_long, sender.region]
         return ret
 
 
@@ -171,8 +188,8 @@ if __name__ == '__main__':
     app = App()
 
     data = Database()
-
     loc = data.get_location("167.96.56.212")
+
     app.add_point_to_map(loc[1], loc[0])
 
     app.MainLoop()
