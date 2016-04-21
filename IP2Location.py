@@ -2,6 +2,8 @@ import sys
 import struct
 import socket
 
+# Author: IP2Location.com; NOT CSC 3380 Group 20
+
 if sys.version < '3':
     def u(x):
         return x.decode('utf-8')
